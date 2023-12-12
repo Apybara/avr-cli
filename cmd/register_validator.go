@@ -210,26 +210,26 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 
 				// field can only be 251 bits, throw an error if it is too long
 				nameFieldBitLen := util.CalculateLength(nameField)
-				if nameFieldBitLen > 256 {
-					fmt.Println("Name field is too long. It must be less than 251 characters.")
+				if nameFieldBitLen > 76 {
+					fmt.Println("Name field is too long. It must be less than 76 characters.", nameFieldBitLen, nameField)
 					return nil
 				}
 
 				websiteUrlFieldBitLen := util.CalculateLength(websiteUrlField)
-				if websiteUrlFieldBitLen > 256 {
-					fmt.Println("Website url field is too long. It must be less than 251 characters.")
+				if websiteUrlFieldBitLen > 76 {
+					fmt.Println("Website url field is too long. It must be less than 76 characters.", websiteUrlFieldBitLen, websiteUrlField)
 					return nil
 				}
 
 				logoUrlFieldBitLen := util.CalculateLength(logoUrlField)
-				if logoUrlFieldBitLen > 256 {
-					fmt.Println("Logo url field is too long. It must be less than 251 characters.")
+				if logoUrlFieldBitLen > 76 {
+					fmt.Println("Logo url field is too long. It must be less than 76 characters.", logoUrlFieldBitLen, logoUrlField)
 					return nil
 				}
 
 				descriptionFieldBitLen := util.CalculateLength(descriptionField)
-				if descriptionFieldBitLen > 256 {
-					fmt.Println("Description field is too long. It must be less than 251 characters.")
+				if descriptionFieldBitLen > 76 {
+					fmt.Println("Description field is too long. It must be less than 76 characters.", descriptionFieldBitLen, descriptionField)
 					return nil
 				}
 

@@ -117,11 +117,15 @@ func UpdateRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []*cli.Comman
 
 			cmd := exec.Command("bash", "-c", inputStringF)
 
+			// command in bash
+
 			fmt.Println("Executing command: ", cmd)
 
 			// handle the output warnings
 			cmd.Stdout = context.App.Writer
 			cmd.Stderr = context.App.ErrWriter
+
+			cmd.Run()
 
 			return nil
 

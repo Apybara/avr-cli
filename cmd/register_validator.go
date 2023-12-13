@@ -186,6 +186,33 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 			}
 			for i := range aleoValidatorResponse.Members {
 
+				// check if the validator is already registered
+				//https://aleo-clnode.staking.xyz/testnet3/program/avr12345678910.aleo/mapping/validator_registry/aleo1va007kum34a5xpmwzwh9d4z5d7d5370qr49plu2mrl9vkh777qxqh0y9jk
+
+				response, err := http.Get(cfg.Common.AleoNodeUrl + "/testnet3/program/" + cfg.Common.ProgramID + "/mapping/validator_registry/" + i)
+				if err != nil {
+					return err
+				}
+
+				defer response.Body.Close()
+
+				// response is not null, validator is already registered
+				if response.StatusCode != 404 {
+					fmt.Println("Validator is already registered")
+					continue
+				}
+
+				if response.Body != nil {
+					bodyGetPage, _ := io.ReadAll(response.Body)
+					fmt.Println(string(bodyGetPage))
+
+					// if the response is not null, the validator is already registered
+					if string(bodyGetPage) != "" {
+						fmt.Println("Validator is already registered")
+						continue
+					}
+				}
+
 				// prepare the command
 				var query = cfg.Common.AleoNodeUrl
 				var broadcast = cfg.Common.AleoNodeUrl + "/testnet3/transaction/broadcast"
@@ -245,7 +272,7 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 				fmt.Println("Executing command with the following fields:", "validator_address:", validator, "name:", nameField, "website_url:", websiteUrlField, "logo_url:", logoUrlField, "description:", descriptionField)
 
 				// execute the command
-				err := cmd.Run()
+				err = cmd.Run()
 
 				// check if there was an error
 				if err != nil {

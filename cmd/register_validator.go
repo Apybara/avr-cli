@@ -189,7 +189,7 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 				// check if the validator is already registered
 				//https://aleo-clnode.staking.xyz/testnet3/program/avr12345678910.aleo/mapping/validator_registry/aleo1va007kum34a5xpmwzwh9d4z5d7d5370qr49plu2mrl9vkh777qxqh0y9jk
 
-				response, err := http.Get(cfg.Common.AleoNodeUrl + "/testnet3/program/" + cfg.Common.ProgramID + "/mapping/validator_registry/" + i)
+				response, err := http.Get(cfg.Common.AleoNodeUrl + "/testnet3/program/" + cfg.Common.ProgramID + "/mapping/registry/" + i)
 				if err != nil {
 					return err
 				}

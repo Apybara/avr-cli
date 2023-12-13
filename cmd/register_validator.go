@@ -197,10 +197,6 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 				defer response.Body.Close()
 
 				// response is not null, validator is already registered
-				if response.StatusCode != 404 {
-					fmt.Println("Validator is already registered")
-					continue
-				}
 
 				if response.Body != nil {
 					bodyGetPage, _ := io.ReadAll(response.Body)
@@ -208,9 +204,14 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 
 					// if the response is not null, the validator is already registered
 					if string(bodyGetPage) != "" {
-						fmt.Println("Validator is already registered")
+						fmt.Println("Validator is already registered: ", i)
 						continue
 					}
+				}
+
+				if response.StatusCode != 404 {
+					fmt.Println("Validator is already registered: ", i)
+					continue
 				}
 
 				// prepare the command

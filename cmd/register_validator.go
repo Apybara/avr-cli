@@ -203,15 +203,10 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 					fmt.Println(string(bodyGetPage))
 
 					// if the response is not null, the validator is already registered
-					if string(bodyGetPage) != "" {
+					if string(bodyGetPage) != "null" {
 						fmt.Println("Validator is already registered: ", i)
 						continue
 					}
-				}
-
-				if response.StatusCode != 404 {
-					fmt.Println("Validator is already registered: ", i)
-					continue
 				}
 
 				// prepare the command

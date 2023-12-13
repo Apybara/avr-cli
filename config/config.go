@@ -14,7 +14,7 @@ type AleoValidatorRegistryCliConfig struct {
 	Common struct {
 		Commit           string `env:"COMMIT" envDefault:""`
 		Version          string `env:"VERSION" envDefault:""`
-		ProgramID        string `env:"PROGRAM_ID" envDefault:"avr123456789.aleo"`
+		ProgramID        string `env:"PROGRAM_ID" envDefault:"avr12345678910.aleo"`
 		ProgramOwnerPkey string `env:"PROGRAM_OWNER_PKEY" envDefault:""`
 		AleoNodeUrl      string `env:"ALEO_NODE_URL" envDefault:"https://api.explorer.aleo.org/v1"`
 		DB               string `env:"DB" envDefault:""`

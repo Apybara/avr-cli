@@ -192,10 +192,10 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 				var priorityFee = "0"
 				var privateKey = context.String("private-key")
 				var validator = i
-				var name = ""
-				var websiteUrl = ""
-				var logoUrl = ""
-				var description = ""
+				var name = " "
+				var websiteUrl = " "
+				var logoUrl = " "
+				var description = " "
 
 				var nameNumber = util.Utf8StringToBigInt(name)
 				var websiteUrlNumber = util.Utf8StringToBigInt(websiteUrl)

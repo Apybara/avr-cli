@@ -5,6 +5,7 @@ import (
 	"avr-cli-backend/util"
 	"encoding/json"
 	"fmt"
+	"github.com/jasonlvhit/gocron"
 	"github.com/urfave/cli/v2"
 	"io"
 	"net/http"
@@ -164,123 +165,140 @@ func RegisterValidatorRegistryCmd(cfg *config.AleoValidatorRegistryCliConfig) []
 				Value:    "",
 				Required: true,
 			},
+			&cli.IntFlag{
+				Name:     "interval",
+				Usage:    "The interval in minutes to check for new validators",
+				Aliases:  []string{"i"},
+				Value:    60,
+				Required: false,
+			},
 		},
 		Action: func(context *cli.Context) error {
 
-			url := cfg.Common.AleoNodeUrl + "/testnet3/latest/committee"
-			committeeResp, err := http.Get(url)
-			if err != nil {
-				return err
-			}
-
-			defer committeeResp.Body.Close()
-			bodyGetPage, _ := io.ReadAll(committeeResp.Body)
-
-			var aleoValidatorResponse AleoValidatorResponse
-			json.Unmarshal(bodyGetPage, &aleoValidatorResponse)
-
-			// cache the result
-			if aleoValidatorResponse.Members == nil || len(aleoValidatorResponse.Members) == 0 {
-				fmt.Println("No validators found")
-				return nil
-			}
-			for i := range aleoValidatorResponse.Members {
-
-				// check if the validator is already registered
-				//https://aleo-clnode.staking.xyz/testnet3/program/avr12345678910.aleo/mapping/validator_registry/aleo1va007kum34a5xpmwzwh9d4z5d7d5370qr49plu2mrl9vkh777qxqh0y9jk
-
-				response, err := http.Get(cfg.Common.AleoNodeUrl + "/testnet3/program/" + cfg.Common.ProgramID + "/mapping/registry/" + i)
+			interval := context.Int("interval")
+			fmt.Printf("Checking for new validators every %d minute(s)", interval)
+			s := gocron.NewScheduler()
+			s.Every(uint64(interval)).Minute().Do(func() error {
+				url := cfg.Common.AleoNodeUrl + "/testnet3/latest/committee"
+				committeeResp, err := http.Get(url)
 				if err != nil {
 					return err
 				}
 
-				defer response.Body.Close()
+				defer committeeResp.Body.Close()
+				bodyGetPage, _ := io.ReadAll(committeeResp.Body)
 
-				// response is not null, validator is already registered
+				var aleoValidatorResponse AleoValidatorResponse
+				json.Unmarshal(bodyGetPage, &aleoValidatorResponse)
 
-				if response.Body != nil {
-					bodyGetPage, _ := io.ReadAll(response.Body)
-					fmt.Println(string(bodyGetPage))
+				// cache the result
+				if aleoValidatorResponse.Members == nil || len(aleoValidatorResponse.Members) == 0 {
+					fmt.Println("No validators found")
+					return nil
+				}
+				for i := range aleoValidatorResponse.Members {
 
-					// if the response is not null, the validator is already registered
-					if string(bodyGetPage) != "null" {
-						fmt.Println("Validator is already registered: ", i)
-						continue
+					// check if the validator is already registered
+					//https://aleo-clnode.staking.xyz/testnet3/program/avr12345678910.aleo/mapping/validator_registry/aleo1va007kum34a5xpmwzwh9d4z5d7d5370qr49plu2mrl9vkh777qxqh0y9jk
+
+					response, err := http.Get(cfg.Common.AleoNodeUrl + "/testnet3/program/" + cfg.Common.ProgramID + "/mapping/registry/" + i)
+					if err != nil {
+						return err
 					}
+
+					defer response.Body.Close()
+
+					// response is not null, validator is already registered
+
+					if response.Body != nil {
+						bodyGetPage, _ := io.ReadAll(response.Body)
+						fmt.Println(string(bodyGetPage))
+
+						// if the response is not null, the validator is already registered
+						if string(bodyGetPage) != "null" {
+							fmt.Println("Validator is already registered: ", i)
+							continue
+						}
+					}
+
+					// prepare the command
+					var query = cfg.Common.AleoNodeUrl
+					var broadcast = cfg.Common.AleoNodeUrl + "/testnet3/transaction/broadcast"
+					var priorityFee = "0"
+					var privateKey = context.String("private-key")
+					var validator = i
+					var name = " "
+					var websiteUrl = " "
+					var logoUrl = " "
+					var description = " "
+
+					var nameNumber = util.Utf8StringToBigInt(name)
+					var websiteUrlNumber = util.Utf8StringToBigInt(websiteUrl)
+					var logoUrlNumber = util.Utf8StringToBigInt(logoUrl)
+					var descriptionNumber = util.Utf8StringToBigInt(description)
+
+					// add the word "field" to the name, website url, logo url, and description
+					nameField := fmt.Sprintf("%dfield", nameNumber)
+					websiteUrlField := fmt.Sprintf("%dfield", websiteUrlNumber)
+					logoUrlField := fmt.Sprintf("%dfield", logoUrlNumber)
+					descriptionField := fmt.Sprintf("%dfield", descriptionNumber)
+
+					// field can only be 251 bits, throw an error if it is too long
+					nameFieldBitLen := util.CalculateLength(nameField)
+					if nameFieldBitLen > 76 {
+						fmt.Println("Name field is too long. It must be less than 76 characters.", nameFieldBitLen, nameField)
+						return nil
+					}
+
+					websiteUrlFieldBitLen := util.CalculateLength(websiteUrlField)
+					if websiteUrlFieldBitLen > 76 {
+						fmt.Println("Website url field is too long. It must be less than 76 characters.", websiteUrlFieldBitLen, websiteUrlField)
+						return nil
+					}
+
+					logoUrlFieldBitLen := util.CalculateLength(logoUrlField)
+					if logoUrlFieldBitLen > 76 {
+						fmt.Println("Logo url field is too long. It must be less than 76 characters.", logoUrlFieldBitLen, logoUrlField)
+						return nil
+					}
+
+					descriptionFieldBitLen := util.CalculateLength(descriptionField)
+					if descriptionFieldBitLen > 76 {
+						fmt.Println("Description field is too long. It must be less than 76 characters.", descriptionFieldBitLen, descriptionField)
+						return nil
+					}
+
+					// put quotes around the entire json body
+					var inputString = "" + "\"" + "{\"validator_address\":\"" + validator + "\",\"name\":" + nameField + ", \"website_url\":" + websiteUrlField + ", \"logo_url\":" + logoUrlField + ", \"description\":" + descriptionField + "}" + "\""
+					var inputStringF = fmt.Sprintf("snarkos developer execute %s register_validator %s --private-key %s --query %s --broadcast %s --priority-fee %s", cfg.Common.ProgramID, inputString, privateKey, query, broadcast, priorityFee)
+
+					cmd := exec.Command("bash", "-c", inputStringF)
+
+					cmd.Stdout = context.App.Writer
+					cmd.Stderr = context.App.ErrWriter
+
+					fmt.Println("Executing command with the following fields:", "validator_address:", validator, "name:", nameField, "website_url:", websiteUrlField, "logo_url:", logoUrlField, "description:", descriptionField)
+
+					// execute the command
+					err = cmd.Run()
+
+					// check if there was an error
+					if err != nil {
+						return err
+					}
+
+					// output the result
+					fmt.Println("Successfully registered validator with address: ", validator)
+					time.Sleep(5 * time.Second)
 				}
+				return nil
+			})
+			s.Start()
 
-				// prepare the command
-				var query = cfg.Common.AleoNodeUrl
-				var broadcast = cfg.Common.AleoNodeUrl + "/testnet3/transaction/broadcast"
-				var priorityFee = "0"
-				var privateKey = context.String("private-key")
-				var validator = i
-				var name = " "
-				var websiteUrl = " "
-				var logoUrl = " "
-				var description = " "
-
-				var nameNumber = util.Utf8StringToBigInt(name)
-				var websiteUrlNumber = util.Utf8StringToBigInt(websiteUrl)
-				var logoUrlNumber = util.Utf8StringToBigInt(logoUrl)
-				var descriptionNumber = util.Utf8StringToBigInt(description)
-
-				// add the word "field" to the name, website url, logo url, and description
-				nameField := fmt.Sprintf("%dfield", nameNumber)
-				websiteUrlField := fmt.Sprintf("%dfield", websiteUrlNumber)
-				logoUrlField := fmt.Sprintf("%dfield", logoUrlNumber)
-				descriptionField := fmt.Sprintf("%dfield", descriptionNumber)
-
-				// field can only be 251 bits, throw an error if it is too long
-				nameFieldBitLen := util.CalculateLength(nameField)
-				if nameFieldBitLen > 76 {
-					fmt.Println("Name field is too long. It must be less than 76 characters.", nameFieldBitLen, nameField)
-					return nil
-				}
-
-				websiteUrlFieldBitLen := util.CalculateLength(websiteUrlField)
-				if websiteUrlFieldBitLen > 76 {
-					fmt.Println("Website url field is too long. It must be less than 76 characters.", websiteUrlFieldBitLen, websiteUrlField)
-					return nil
-				}
-
-				logoUrlFieldBitLen := util.CalculateLength(logoUrlField)
-				if logoUrlFieldBitLen > 76 {
-					fmt.Println("Logo url field is too long. It must be less than 76 characters.", logoUrlFieldBitLen, logoUrlField)
-					return nil
-				}
-
-				descriptionFieldBitLen := util.CalculateLength(descriptionField)
-				if descriptionFieldBitLen > 76 {
-					fmt.Println("Description field is too long. It must be less than 76 characters.", descriptionFieldBitLen, descriptionField)
-					return nil
-				}
-
-				// put quotes around the entire json body
-				var inputString = "" + "\"" + "{\"validator_address\":\"" + validator + "\",\"name\":" + nameField + ", \"website_url\":" + websiteUrlField + ", \"logo_url\":" + logoUrlField + ", \"description\":" + descriptionField + "}" + "\""
-				var inputStringF = fmt.Sprintf("snarkos developer execute %s register_validator %s --private-key %s --query %s --broadcast %s --priority-fee %s", cfg.Common.ProgramID, inputString, privateKey, query, broadcast, priorityFee)
-
-				cmd := exec.Command("bash", "-c", inputStringF)
-
-				cmd.Stdout = context.App.Writer
-				cmd.Stderr = context.App.ErrWriter
-
-				fmt.Println("Executing command with the following fields:", "validator_address:", validator, "name:", nameField, "website_url:", websiteUrlField, "logo_url:", logoUrlField, "description:", descriptionField)
-
-				// execute the command
-				err = cmd.Run()
-
-				// check if there was an error
-				if err != nil {
-					return err
-				}
-
-				// output the result
-				fmt.Println("Successfully registered validator")
-				time.Sleep(5 * time.Second)
+			for true {
+				time.Sleep(1 * time.Second)
 			}
 			return nil
-
 		},
 	}
 	registerValidatorCmds = append(registerValidatorCmds, registerValidatorCmd)

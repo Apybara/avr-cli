@@ -22,7 +22,7 @@ go to https://github.com/Apybara/avr-program and deploy the aleo program
 **Note:** This command can only be called by the owner of the avr.aleo Program.
 
 ```bash
-./avr-cli register-validator --name="aleo node" --description="aleo validator node" --website-url="https://aleo.org" --logo-url="https://aleo.org" --validator=aleo1rt3vjrusjvd6wje97efl3ra78k0d6f4c3zn8avuym0qwkl4njv9shhmfsk --private-key=<owner of the avr.aleo private key>`
+./avr-cli register-all-validators --private-key=<owner private key>`
 ```
 
 ## Running as a validator

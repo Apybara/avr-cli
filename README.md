@@ -1,6 +1,6 @@
 # Aleo Validator Registry CLI
 
-## Prerequisites for avr.aleo owner
+## Prerequisites for `av_registry.aleo` owner
 - Install SnarkOS (this requires the installation of SnarkOS and its dependencies)
 - This CLI requires the `snarkos` binary to be on the environment path.
 - Deploy the avr.aleo program https://github.com/Apybara/avr-program
